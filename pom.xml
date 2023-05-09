@@ -6,7 +6,7 @@
 
   <groupId>brandjay56</groupId>
   <artifactId>image-gen</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0.0</version>
 
   <name>image-gen</name>
   <!-- FIXME change it to the project's website -->
@@ -111,6 +111,22 @@
               <execution>
                   <goals>
                       <goal>java</goal>
+                  </goals>
+              </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>com.jolira</groupId>
+          <artifactId>onejar-maven-plugin</artifactId>
+          <executions>
+              <execution>
+                  <configuration>
+                      <mainClass>brandjay56.AppDriver</mainClass>
+                      <attachToBuild>true</attachToBuild>
+                      <filename>ImageGenerator.jar</filename>
+                  </configuration>
+                  <goals>
+                      <goal>one-jar</goal>
                   </goals>
               </execution>
           </executions>

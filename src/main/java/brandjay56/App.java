@@ -35,6 +35,7 @@ import java.awt.event.*;
 import java.awt.image.*;
 import java.io.*;
 import java.net.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 import java.awt.*;
@@ -59,6 +60,7 @@ public class App extends Application{
     Button genButton;
     Button regenButton;
     Button webButton;
+    Button saveButton;
     Button nextButton;
     Button lastButton;
     ImageView imageView;
@@ -76,7 +78,7 @@ public class App extends Application{
         this.mainUrl = "";
         this.finalResponse = "";
 
-        this.token = "INSERT TOKEN";
+        this.token = "INSERT API KEY HERE";
         this.service = new OpenAiService(token);
 
         this.root = new VBox(8);
@@ -88,6 +90,7 @@ public class App extends Application{
         this.genButton = new Button("Generate");
         this.regenButton = new Button("Regenerate");
         this.webButton = new Button("Open in Web");
+        this.saveButton = new Button("Save Image");
         this.nextButton = new Button("Next Image");
         this.lastButton = new Button("Previous Image");
         this.imageView = new ImageView();
@@ -111,14 +114,16 @@ public class App extends Application{
 
         this.imageBox.getChildren().add(this.imageView);
         this.progressBox.getChildren().add(this.progressBar);
+        
 
         this.searchRow.getChildren().addAll(this.searchField, this.genButton, this.progressBox);
         this.textRow.getChildren().add(this.textLabel);
-        this.buttonRow.getChildren().addAll(this.regenButton, this.webButton, this.lastButton, this.nextButton);
+        this.buttonRow.getChildren().addAll(this.regenButton, this.webButton, this.saveButton, this.lastButton, this.nextButton);
 
         this.progressBox.setAlignment(Pos.CENTER);
         this.imageBox.setAlignment(Pos.CENTER);
         this.buttonRow.setAlignment(Pos.CENTER);
+        this.textLabel.setAlignment(Pos.CENTER);
         
         this.root.getChildren().addAll(this.searchRow);
         root.setPadding(new Insets(10));
@@ -130,7 +135,7 @@ public class App extends Application{
     @Override
     public void start(Stage stage) {
         this.stage = stage;
-        this.scene = new Scene(root, 550, 660);
+        this.scene = new Scene(root, 570, 680);
         this.stage.setScene(this.scene);
         this.stage.sizeToScene();
         this.stage.setTitle("Image Generator");
@@ -170,7 +175,15 @@ public class App extends Application{
 
         this.webButton.setOnAction(event -> this.runNow(() -> {
             try {
-                openWebPage(mainUrl);
+                openWebPage(images.get(currentPos).getUrl());
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+        }));
+
+        this.saveButton.setOnAction(event -> this.runNow(() -> {
+            try {
+                saveImage(images.get(currentPos).getUrl());
             } catch (Exception e1) {
                 e1.printStackTrace();
             }
@@ -278,7 +291,7 @@ public class App extends Application{
         //Reloads to frame
         if (currentPos > 0) {
             currentPos--;
-            imageView.setImage(new Image(images.get(currentPos).getUrl(), 400, 400, true, true));
+            imageView.setImage(new Image(images.get(currentPos).getUrl(), 500, 500, true, true));
             textLabel.setText(images.get(currentPos).getPrompt());
         }
     } 
@@ -287,12 +300,48 @@ public class App extends Application{
         //Reloads to frame
         if (currentPos < images.size() - 1) {
             currentPos++;
-            imageView.setImage(new Image(images.get(currentPos).getUrl(), 400, 400, true, true));
+            imageView.setImage(new Image(images.get(currentPos).getUrl(), 500, 500, true, true));
             textLabel.setText(images.get(currentPos).getPrompt());
         }
     } 
 
+    public void saveImage(String url) {
+        
+        URL url2 = null;
+        BufferedImage img = null;
+
+        try {
+            url2 = new URL(mainUrl);
+            img = ImageIO.read(url2);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        String pattern = "yyyyMMddHHmmss";
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        String fileName = "image-" + sdf.format(new Date()) + ".png";
+
+        File dir = new File("images/");
+        if (!dir.exists()) {
+            boolean created = dir.mkdirs();
+            if (!created) {
+                // Handle error
+            }
+        }
+
+        File file = new File("images/" + fileName);
+
+        try {
+            ImageIO.write(img, "png", file);
+            file.createNewFile();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
     public void openWebPage(String url) throws IOException {
+
         URI uri = null;
         try {
             uri = new URI(url);
