@@ -8,6 +8,7 @@ import com.theokanning.openai.image.CreateImageRequest;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.stage.*;
 import javafx.scene.*;
@@ -66,6 +67,7 @@ public class App extends Application{
     ImageView imageView;
     TextField searchField;
     Label textLabel;
+    Label errorLabel;
     ProgressBar progressBar;
 
     List<GenImage> images;
@@ -78,7 +80,7 @@ public class App extends Application{
         this.mainUrl = "";
         this.finalResponse = "";
 
-        this.token = "INSERT API KEY HERE";
+        this.token = "ENTER YOUR OPENAI API KEY HERE";
         this.service = new OpenAiService(token);
 
         this.root = new VBox(8);
@@ -95,6 +97,7 @@ public class App extends Application{
         this.lastButton = new Button("Previous Image");
         this.imageView = new ImageView();
         this.textLabel = new Label("");
+        this.errorLabel = new Label("");
         this.searchField = new TextField("Enter a word or phrase");
         this.progressBar = new ProgressBar(0.0);
 
@@ -106,6 +109,8 @@ public class App extends Application{
     /** {@inheritDoc} */
     @Override
     public void init() {
+
+
         HBox.setHgrow(this.searchField, Priority.ALWAYS);
         HBox.setHgrow(this.progressBar, Priority.ALWAYS);
         VBox.setVgrow(root, Priority.ALWAYS);
@@ -125,7 +130,7 @@ public class App extends Application{
         this.buttonRow.setAlignment(Pos.CENTER);
         this.textLabel.setAlignment(Pos.CENTER);
         
-        this.root.getChildren().addAll(this.searchRow);
+        this.root.getChildren().addAll(this.searchRow, this.errorLabel);
         root.setPadding(new Insets(10));
 
 
@@ -136,18 +141,39 @@ public class App extends Application{
     public void start(Stage stage) {
         this.stage = stage;
         this.scene = new Scene(root, 570, 680);
+        String cssFile = getClass().getResource("/style.css").toExternalForm();
+        scene.getStylesheets().add(cssFile);
+
+        
+        this.genButton.setId("gen-button");
+
+        
         this.stage.setScene(this.scene);
         this.stage.sizeToScene();
         this.stage.setTitle("Image Generator");
         this.stage.show();
 
+
+
+
+
         this.genButton.setOnAction(event -> this.runNow(() -> {
             try {
-                prompt = chatPrompt(searchField.getText());
+                if (this.searchField.getText().trim().isEmpty()) {
+                    Platform.runLater(() -> this.errorLabel.setText("Error: Please enter a word or phrase."));
+                } else {
                 Image img = createImage(prompt);
                 Platform.runLater(() -> updateImages(img));
+                }
             } catch (Exception e1) {
                 e1.printStackTrace();
+                Platform.runLater(() -> {
+                    progressBar.setProgress(0);
+                    genButton.setDisable(false);
+                    regenButton.setDisable(false);
+                    errorLabel.setText("Error: Unable to generate image. Please try again.");
+                });
+
             }
         }));
 
@@ -155,11 +181,21 @@ public class App extends Application{
         if (event.getCode() == KeyCode.ENTER) {
             this.runNow(() -> {
                 try {
+                    if (this.searchField.getText().trim().isEmpty()) {
+                        Platform.runLater(() -> this.errorLabel.setText("Error: Please enter a word or phrase."));
+                    } else {
                     prompt = chatPrompt(searchField.getText());
                     Image img = createImage(prompt);
                     Platform.runLater(() -> updateImages(img));
+                    }
                 } catch (Exception e1) {
                     e1.printStackTrace();
+                    Platform.runLater(() -> {
+                        progressBar.setProgress(0);
+                        genButton.setDisable(false);
+                        regenButton.setDisable(false);
+                        errorLabel.setText("Error: Unable to generate image. Please try again.");
+                    });
                 }
         });
         }});
@@ -170,6 +206,12 @@ public class App extends Application{
                 Platform.runLater(() -> updateImages(img));
             } catch (Exception e1) {
                 e1.printStackTrace();
+                Platform.runLater(() -> {
+                    progressBar.setProgress(0);
+                    genButton.setDisable(false);
+                    regenButton.setDisable(false);
+                    errorLabel.setText("Error: Unable to regenerate. Please try again.");
+                });
             }
         }));
 
@@ -178,6 +220,12 @@ public class App extends Application{
                 openWebPage(images.get(currentPos).getUrl());
             } catch (Exception e1) {
                 e1.printStackTrace();
+                Platform.runLater(() -> {
+                    progressBar.setProgress(0);
+                    genButton.setDisable(false);
+                    regenButton.setDisable(false);
+                    errorLabel.setText("Error: Unable to open in web");
+                });
             }
         }));
 
@@ -186,6 +234,12 @@ public class App extends Application{
                 saveImage(images.get(currentPos).getUrl());
             } catch (Exception e1) {
                 e1.printStackTrace();
+                Platform.runLater(() -> {
+                    progressBar.setProgress(0);
+                    genButton.setDisable(false);
+                    regenButton.setDisable(false);
+                    errorLabel.setText("Error: Unable to save image");
+                });
             }
         }));
 
@@ -194,6 +248,12 @@ public class App extends Application{
                 Platform.runLater(() -> nextImage());
             } catch (Exception e1) {
                 e1.printStackTrace();
+                Platform.runLater(() -> {
+                    progressBar.setProgress(0);
+                    genButton.setDisable(false);
+                    regenButton.setDisable(false);
+                    errorLabel.setText("Error: No next image");
+                });
             }
         }));
 
@@ -202,6 +262,12 @@ public class App extends Application{
                 Platform.runLater(() -> lastImage());
             } catch (Exception e1) {
                 e1.printStackTrace();
+                Platform.runLater(() -> {
+                    progressBar.setProgress(0);
+                    genButton.setDisable(false);
+                    regenButton.setDisable(false);
+                    errorLabel.setText("Error: No previous image");
+                });
             }
         }));
         
@@ -223,10 +289,14 @@ public class App extends Application{
 
     public String chatPrompt(String query) {
 
-        Platform.runLater(() -> progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
+        Platform.runLater(() -> {
+            progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+            genButton.setDisable(true);
+            regenButton.setDisable(true);
+        });
 
         final List<ChatMessage> messages = new ArrayList<>();
-        final ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), "Generate a prompt for an AI Image Generator based on the phrase " + query + ". The generator understands you want to create an image, so you don't need to include anything about creating an image.  For the prompt please include 2 unique additions and an art style. You don't need to preclude the prompt with anything. Following this sentence please respond with the prompt.");
+        final ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), "Generate a prompt for an AI Image Generator based on the phrase " + query + ". The generator understands you want to create an image, so you don't need to include anything about creating an image. For the prompt please include up to two unique additions and an art style or artist to base the style on. You don't need to preclude the prompt with anything. Following this sentence please respond with the prompt.");
         messages.add(systemMessage);
         ChatCompletionRequest chatCompletionRequest = ChatCompletionRequest
                 .builder()
@@ -256,8 +326,12 @@ public class App extends Application{
      * @throws IOException
      */
     public Image createImage(String prompt) throws IOException {
-        
-        Platform.runLater(() -> progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS));
+
+        Platform.runLater(() -> {
+            progressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+            genButton.setDisable(true);
+            regenButton.setDisable(true);
+        });
 
         CreateImageRequest request = CreateImageRequest.builder()
                 .prompt(prompt)
@@ -282,9 +356,13 @@ public class App extends Application{
 
         root.getChildren().clear();
 
-        root.getChildren().addAll(searchRow, imageBox, textRow, buttonRow);
+        root.getChildren().addAll(searchRow, imageBox, textRow, buttonRow, errorLabel);
 
         progressBar.setProgress(0.0);
+
+        genButton.setDisable(false);
+        regenButton.setDisable(false);
+        errorLabel.setText("");
     } 
 
     public void lastImage() {
@@ -321,6 +399,8 @@ public class App extends Application{
         String pattern = "yyyyMMddHHmmss";
         SimpleDateFormat sdf = new SimpleDateFormat(pattern);
         String fileName = "image-" + sdf.format(new Date()) + ".png";
+        String fileNameText = "image-" + sdf.format(new Date()) + ".txt";
+
 
         File dir = new File("images/");
         if (!dir.exists()) {
@@ -331,10 +411,19 @@ public class App extends Application{
         }
 
         File file = new File("images/" + fileName);
+        File fileText = new File("images/" + fileNameText);
 
-        try {
+        try (FileWriter writer = new FileWriter(fileText)) {
+            writer.write(this.images.get(currentPos).getPrompt());
+            writer.close();
+        } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+            try {
             ImageIO.write(img, "png", file);
             file.createNewFile();
+            fileText.createNewFile();
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -350,6 +439,10 @@ public class App extends Application{
             e.printStackTrace();
         }
         Desktop.getDesktop().browse(uri);
+    }
+
+    public void styleProgram () {
+        this.root.getStyleClass().add("root");
     }
 
         /**

@@ -1,0 +1,30 @@
+.root {
+  /* Set the background color of the entire scene */
+  -fx-background-color: #1e1e1e;
+  -fx-text-fill: #fff;
+  -fx-font-family: "sans-serif";
+}
+
+.button {
+  -fx-background-color: #4b4b4b;
+  -fx-text-fill: #fff;
+}
+
+.button:hover {
+  -fx-background-color: #28a5df;
+}
+
+
+/* Note that the ".input[type='text']" selector in CSS is not directly applicable 
+to JavaFX because it is not a web-based technology. Instead, you can use the 
+".text-input" style class to style text input controls in JavaFX. */
+
+.text-input {
+  -fx-background-color: #4b4b4b;
+  -fx-text-fill: #fff;
+}
+
+
+.label {
+  -fx-text-fill: #fff;
+}
